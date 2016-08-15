@@ -1,15 +1,20 @@
 Rocket[] rockets;
 int counter;
 int lifeLength;
+int numRockets;
 
 void setup() {
   counter = 0;
   lifeLength = 325;
-  size(1000, 800);
-  rockets = new Rocket[30];
-  for(int i = 0; i < 30; i++){
-    rockets[i] = new Rocket(width/2, height - 200, null);
+  size(1000, 700);
+  numRockets = 75;
+  rockets = new Rocket[numRockets];
+  for(int i = 0; i < numRockets; i++){
+    rockets[i] = new Rocket(width/2, height - 100, null);
   }
+  stroke(0);
+  textSize(18);
+  text("max fitness: ", 20, height - 80);
 }
 
 
@@ -18,7 +23,7 @@ void draw(){
   if(counter > lifeLength){
     newGen(getGenePool());
   }
-  for(int i = 0; i < 30; i++){
+  for(int i = 0; i < numRockets; i++){
     rockets[i].draw();
   }
   stroke(134, 252, 58);
@@ -28,7 +33,14 @@ void draw(){
   fill(200, 80, 197);
   rect(width / 5, height / 2, 500, 40);
   counter++;
-  
+  float max = maxFitness();
+  fill(255, 255, 255);
+  textSize(18);
+  text("max fitness: " + max, 20, height - 80);
+  float avg = avgFitness();
+  fill(255, 255, 255);
+  textSize(18);
+  text("average fitness: " + avg, 20, height - 40);
 }
 
 
@@ -83,6 +95,30 @@ void newGen(ArrayList<Rocket> genePool){
 }
 
 
+
+
+
+float maxFitness(){
+  float large = 0;
+  for(int i = 0; i < rockets.length; i++){
+    if(rockets[i].returnFitness() > large){
+      large = rockets[i].returnFitness();
+    }
+  }
+  return large;
+}
+  
+  
+float avgFitness(){
+  float avg = 0;
+    for(int i = 0; i < rockets.length; i++){
+      avg += rockets[i].returnFitness();
+    }
+  avg = avg / rockets.length;
+  return avg;
+}
+  
+  
 //Rocket object
 class Rocket{
   float posx, posy; //create floats to hold x and y coords
@@ -112,29 +148,34 @@ class Rocket{
   }
   
   void draw(){
-    float td = dist(posx, posy, width/2, 80);
-    if((posx > width / 5 && posx < (width / 5) + 500) && (posy > height / 2 && posy < (height / 2) + 40 )){
+    float td = dist(posx, posy, width/2, 80); //calculate distance to target
+    if((posx > width / 5 && posx < (width / 5) + 500) && (posy > height / 2 && posy < (height / 2) + 40 )){ //check to see if rocket has colided with obstacle
       alive = false;
+      td += 50;
     }
-    if(td < 60){
+    if(td < 60){ //check to see if the rocket has collided with the target
         alive = false;
         fitness = 100;
     }
-    if(counter >= lifeLength - 1){
+    if(posx < 0 || posx > width || posy < 0 || posy > height){
+      alive = false;
+      td += 50;
+    }
+    if(counter >= lifeLength - 1){ //check to see if the rocket has ellapsed its entire lifespan
         alive = false;
     }
-    if(!alive){
+    if(!alive){ //if the rocket is no longer living, calculate a fitness metric
         fitness = 1000 / td;
     }
     if(alive){
+      posx += vel.x; 
+      posy += vel.y;
       acc = sequence[counter]; //update acceleration
       vel.add(acc); //use acceleration to update velocity
       if(Math.abs(vel.x) > 8 || Math.abs(vel.y) > 8){
         vel.sub(acc);
       } 
       //use velocity to update position
-      posx += vel.x; 
-      posy += vel.y;
       updatePoints();
       drawRocketShape();
     }
@@ -151,7 +192,8 @@ class Rocket{
       
       
       if(counter > 0 && counter < lifeLength - 1 ){
-        float theta = PVector.angleBetween(new PVector(0, -1), vel);
+        float theta = angle(new PVector(0, -1), vel);
+        System.out.println("theta: " + theta);
         float[][] newPoints = new float[3][2];
         newPoints[0][0] = ((points[0][0] - posx) * cos(theta)) - ((points[0][1] - posy) * sin(theta)) + posx;
         newPoints[0][1] = ((points[0][1] - posy) * cos(theta)) + ((points[0][0] - posx) * sin(theta)) + posy;
@@ -165,7 +207,6 @@ class Rocket{
   
   void drawRocketShape(){
     stroke(134, 252, 58);
-    System.out.println(points[0][0]);
     line(points[0][0], points[0][1], points[1][0], points[1][1]);
     line(points[1][0], points[1][1], points[2][0], points[2][1]);
     line(points[2][0], points[2][1], points[0][0], points[0][1]);
@@ -178,5 +219,11 @@ class Rocket{
   
   public PVector[] returnSequence(){
     return sequence;
+  }
+  
+  public float angle(PVector v1, PVector v2) {
+    float a = atan2(v2.y, v2.x) - atan2(v1.y, v1.x);
+    if (a < 0) a += TWO_PI;
+    return a;
   }
 } 
