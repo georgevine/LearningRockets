@@ -7,7 +7,8 @@ int numRockets; //number of rockets to spawn each generation
 //called immediately on run
 void setup() {
   lifeCounter = 0;
-  lifeLength = 325;
+  lifeLength = 360;
+  genCounter = 1;
   size(1000, 700); //create window with height and width
   numRockets = 75;
   rockets = new Rocket[numRockets]; 
@@ -35,7 +36,7 @@ void draw(){
   stroke(200, 80, 197);
   fill(200, 80, 197);
   //draw obstacle
-  rect(width / 5, height / 2, 500, 40);
+  rect(width / 5, height / 2, 3 * width / 5 , 40);
   //increment counter
   lifeCounter++;
   //calcutale maximum fitness of this generation and display it
@@ -48,6 +49,9 @@ void draw(){
   fill(255, 255, 255);
   textSize(18);
   text("average fitness: " + avg, 20, height - 40);
+  fill(255, 255, 255);
+  textSize(18);
+  text("Generation: " + genCounter, width - 160, height - 40);
 }
 
 
@@ -72,6 +76,7 @@ ArrayList<Rocket> getGenePool(){
 //up to this splitpoint, and Parent B's sequence after this splitpoint, with the exception that every gene in the sequence has a certain chance of 'mutating',
 //or being replaced by a new random vector
 void newGen(ArrayList<Rocket> genePool){
+  genCounter ++;
   for(int i = 0; i < rockets.length; i++){
     Rocket parentA = genePool.get((int)(random(genePool.size())));
     Rocket parentB = genePool.get((int)(random(genePool.size())));
@@ -158,7 +163,7 @@ class Rocket{
   //update rocket state, check for collisions with obstacles, screen boundries, and target, update the rocket's vertex coords, then redraw
   void draw(){
     float td = dist(posx, posy, width/2, 80); //calculate distance to target
-    if((posx > width / 5 && posx < (width / 5) + 500) && (posy > height / 2 && posy < (height / 2) + 40 )){ //check to see if rocket has colided with obstacle
+    if((posx > width / 5 && posx < (width / 5) + (3 * width / 5)) && (posy > height / 2 && posy < (height / 2) + 40 )){ //check to see if rocket has colided with obstacle
       alive = false;
       td += 50;
     }
