@@ -1,42 +1,49 @@
-Rocket[] rockets;
-int counter;
-int lifeLength;
-int numRockets;
+Rocket[] rockets; //array containing all rocket objects
+int lifeCounter; //keeps track of life-length of current generation of rockets (incremented every draw loop)
+int genCounter;
+int lifeLength; //maximum draws of each rocket before expiration
+int numRockets; //number of rockets to spawn each generation
 
+//called immediately on run
 void setup() {
-  counter = 0;
+  lifeCounter = 0;
   lifeLength = 325;
-  size(1000, 700);
+  size(1000, 700); //create window with height and width
   numRockets = 75;
-  rockets = new Rocket[numRockets];
-  for(int i = 0; i < numRockets; i++){
+  rockets = new Rocket[numRockets]; 
+  for(int i = 0; i < numRockets; i++){ //spawn first generation of rockets
     rockets[i] = new Rocket(width/2, height - 100, null);
   }
-  stroke(0);
-  textSize(18);
-  text("max fitness: ", 20, height - 80);
 }
 
 
+//called continuously throughout program run
 void draw(){
-  background(0);
-  if(counter > lifeLength){
+  background(0); //clear screen
+  if(lifeCounter > lifeLength){ //if the existing generation has expired, create a new generation
     newGen(getGenePool());
-  }
+  } //update and draw all rockets
   for(int i = 0; i < numRockets; i++){
     rockets[i].draw();
   }
+  //set color for drawing target
   stroke(134, 252, 58);
   fill(134, 252, 58);
+  //draw target
   ellipse(width / 2, 80, 100, 100);
+  //set color for drawing obstacle
   stroke(200, 80, 197);
   fill(200, 80, 197);
+  //draw obstacle
   rect(width / 5, height / 2, 500, 40);
-  counter++;
+  //increment counter
+  lifeCounter++;
+  //calcutale maximum fitness of this generation and display it
   float max = maxFitness();
   fill(255, 255, 255);
   textSize(18);
   text("max fitness: " + max, 20, height - 80);
+  //calculate average fitness of this generation and display it
   float avg = avgFitness();
   fill(255, 255, 255);
   textSize(18);
@@ -45,25 +52,25 @@ void draw(){
 
 
 //generate a list of rockets, with each of the rockets in the previous generation being added to the list
-//0 to 100 times based on their fitness values
+//0 to many times based on their fitness values. (higher fintess = more enteries into this list
 ArrayList<Rocket> getGenePool(){
   ArrayList<Rocket> genePool = new ArrayList<Rocket>();
-  
-  System.out.println("rocekts length: " + rockets.length);
+
   for(int i = 0; i < rockets.length; i++){
-    System.out.println("fit: " + (int)(rockets[i].returnFitness()));
     for(int j = 0; j < (int)(rockets[i].returnFitness()); j++){
       genePool.add(rockets[i]);
     }
   }
-  System.out.println("gene pool size: " + genePool.size());
   return genePool;
 }
 
 
 
-//update rockets array by "breeding" new rockets that have a combination of two parent rockets' sequences
-//parents are randomly selected from the genepool
+//Update rockets array by "breeding" new rockets that have a combination of two parent rockets' sequences.
+//Parents are randomly selected from the genepool, so that higher fitness rockets are more likely to create offspring.
+//After two parents are selected, an arbitrary random split point is generated. The child rocket's sequence will consist of ParentA's sequence
+//up to this splitpoint, and Parent B's sequence after this splitpoint, with the exception that every gene in the sequence has a certain chance of 'mutating',
+//or being replaced by a new random vector
 void newGen(ArrayList<Rocket> genePool){
   for(int i = 0; i < rockets.length; i++){
     Rocket parentA = genePool.get((int)(random(genePool.size())));
@@ -91,13 +98,13 @@ void newGen(ArrayList<Rocket> genePool){
     Rocket childRocket = new Rocket(width / 2, height - 200, childSequence);
     rockets[i] = childRocket;
   }
-  counter  = 0;
+  lifeCounter  = 0;
 }
 
 
 
 
-
+//calculate the maximum fitness of the current generation
 float maxFitness(){
   float large = 0;
   for(int i = 0; i < rockets.length; i++){
@@ -109,6 +116,7 @@ float maxFitness(){
 }
   
   
+//calculate the average fitness of the current generation
 float avgFitness(){
   float avg = 0;
     for(int i = 0; i < rockets.length; i++){
@@ -124,16 +132,16 @@ class Rocket{
   float posx, posy; //create floats to hold x and y coords
   PVector vel, acc; //create vectors to track velocity, and acceleration
   float[][] points; //create float arrays to track rocket body vertecesfor drawing
-  PVector[] sequence; 
-  float fitness; 
-  public boolean alive;
+  PVector[] sequence; //sequence of randomly generated, or parentally generated, acceleration vectors that will be applied to the rocket every draw loop
+  float fitness; //metric identifying the rocket's level of success, and therefore its likehood of creating offspring
+  public boolean alive; //true if the rocket is currently lving and requires state updates
   
   Rocket(float posx, float posy, PVector[] sequence){
     this.posx = posx;
     this.posy = posy;
     vel = new PVector();
     acc = new PVector();
-    fitness = 1000;
+    fitness = 0;
     points = new float[3][2];
     alive = true;
     updatePoints();
@@ -147,6 +155,7 @@ class Rocket{
     }
   }
   
+  //update rocket state, check for collisions with obstacles, screen boundries, and target, update the rocket's vertex coords, then redraw
   void draw(){
     float td = dist(posx, posy, width/2, 80); //calculate distance to target
     if((posx > width / 5 && posx < (width / 5) + 500) && (posy > height / 2 && posy < (height / 2) + 40 )){ //check to see if rocket has colided with obstacle
@@ -157,20 +166,20 @@ class Rocket{
         alive = false;
         fitness = 100;
     }
-    if(posx < 0 || posx > width || posy < 0 || posy > height){
+    if(posx < 0 || posx > width || posy < 0 || posy > height){ //check to see if rocket has left screen
       alive = false;
       td += 50;
     }
-    if(counter >= lifeLength - 1){ //check to see if the rocket has ellapsed its entire lifespan
+    if(lifeCounter >= lifeLength - 1){ //check to see if the rocket has ellapsed its entire lifespan
         alive = false;
     }
     if(!alive){ //if the rocket is no longer living, calculate a fitness metric
         fitness = 1000 / td;
     }
-    if(alive){
+    if(alive){ //if the rocket is living, update in and draw
       posx += vel.x; 
       posy += vel.y;
-      acc = sequence[counter]; //update acceleration
+      acc = sequence[lifeCounter]; //update acceleration
       vel.add(acc); //use acceleration to update velocity
       if(Math.abs(vel.x) > 8 || Math.abs(vel.y) > 8){
         vel.sub(acc);
@@ -183,6 +192,7 @@ class Rocket{
   
   //update vertex positions based on rocket position
   void updatePoints(){
+      //cacluate coords based on rocket position
       points[0][0] = posx; 
       points[0][1] = posy - 5;
       points[1][0] = posx + 4;
@@ -190,10 +200,9 @@ class Rocket{
       points[2][0] = posx - 4;
       points[2][1] = posy + 5;
       
-      
-      if(counter > 0 && counter < lifeLength - 1 ){
+      //rotate the coords to show the rocket turning towards its velocity vector
+      if(lifeCounter > 0 && lifeCounter < lifeLength - 1 ){
         float theta = angle(new PVector(0, -1), vel);
-        System.out.println("theta: " + theta);
         float[][] newPoints = new float[3][2];
         newPoints[0][0] = ((points[0][0] - posx) * cos(theta)) - ((points[0][1] - posy) * sin(theta)) + posx;
         newPoints[0][1] = ((points[0][1] - posy) * cos(theta)) + ((points[0][0] - posx) * sin(theta)) + posy;
@@ -205,6 +214,7 @@ class Rocket{
       }
   }
   
+  //draw lines between the vertex points
   void drawRocketShape(){
     stroke(134, 252, 58);
     line(points[0][0], points[0][1], points[1][0], points[1][1]);
@@ -221,6 +231,7 @@ class Rocket{
     return sequence;
   }
   
+  //calculate the angle between two vectors, returns value between 0 and 2pi
   public float angle(PVector v1, PVector v2) {
     float a = atan2(v2.y, v2.x) - atan2(v1.y, v1.x);
     if (a < 0) a += TWO_PI;
